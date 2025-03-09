@@ -1,40 +1,41 @@
 using System.Text.Json;
 using Spectre.Console;
 
-var client = new HttpClient();
-
-string url_categories = "https://thecocktaildb.com/api/json/v1/1/list.php?c=list";
-DrinkCategoryList categoryList;
-using (var stream = await client.GetStreamAsync(url_categories))
+using (var client = new HttpClient())
 {
-    categoryList = JsonSerializer.Deserialize<DrinkCategoryList>(stream) ?? new(new());
-}
-
-do
-{
-    Console.Clear();
-
-    var prompt = new SelectionPrompt<DrinkCategory>()
-        .Title("Choose a drink category")
-        .AddChoices(categoryList.drinks)
-        .UseConverter(cat => cat.strCategory);
-    prompt.AddChoice(new DrinkCategory("Exit"));
-    var chosenCategory = AnsiConsole.Prompt(prompt);
-
-    if (chosenCategory.strCategory.Equals("Exit"))
+    string urlCategories = "https://thecocktaildb.com/api/json/v1/1/list.php?c=list";
+    DrinkCategoryList categoryList;
+    using (var stream = await client.GetStreamAsync(urlCategories))
     {
-        break;
+        categoryList = JsonSerializer.Deserialize<DrinkCategoryList>(stream) ?? new(new());
     }
 
-    await PromptDrink(chosenCategory.strCategory);
-}
-while (true);
+    do
+    {
+        Console.Clear();
 
-async Task PromptDrink(string category)
+        var prompt = new SelectionPrompt<DrinkCategory>()
+            .Title("Choose a drink category")
+            .AddChoices(categoryList.drinks)
+            .UseConverter(cat => cat.strCategory);
+        prompt.AddChoice(new DrinkCategory("Exit"));
+        var chosenCategory = AnsiConsole.Prompt(prompt);
+
+        if (chosenCategory.strCategory.Equals("Exit"))
+        {
+            break;
+        }
+
+        await PromptDrink(chosenCategory.strCategory, client);
+    }
+    while (true);
+}
+
+async Task PromptDrink(string category, HttpClient client)
 {
-    string url_drinkbycategory = "https://thecocktaildb.com/api/json/v1/1/filter.php?c=";
+    string urlDrinkList = "https://thecocktaildb.com/api/json/v1/1/filter.php?c=";
     DrinkPreviewList drinkList;
-    using (var stream = await client.GetStreamAsync(url_drinkbycategory + category))
+    using (var stream = await client.GetStreamAsync(urlDrinkList + category))
     {
         drinkList = JsonSerializer.Deserialize<DrinkPreviewList>(stream) ?? new(new());
     }
@@ -57,17 +58,17 @@ async Task PromptDrink(string category)
             break;
         }
 
-        await ShowDetails(chosenDrink.idDrink);
+        await ShowDetails(chosenDrink.idDrink, client);
     }
     while (true);
 }
 
-async Task ShowDetails(string drinkId)
+async Task ShowDetails(string drinkId, HttpClient client)
 {
     Console.Clear();
 
-    string url_drinkdetails = "https://thecocktaildb.com/api/json/v1/1/lookup.php?i=";
-    var stream = await client.GetStreamAsync(url_drinkdetails + drinkId);
+    string urlDrinkDetails = "https://thecocktaildb.com/api/json/v1/1/lookup.php?i=";
+    var stream = await client.GetStreamAsync(urlDrinkDetails + drinkId);
 
     Table table = new Table();
     table.AddColumns("", "");
